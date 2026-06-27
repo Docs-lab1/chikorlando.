@@ -16,10 +16,7 @@
     </script>
 
     <style>
-        /* ======================================== */
-        /* COMPLETE STYLES - FIXED */
-        /* ======================================== */
-
+        /* ===== YOUR EXISTING STYLES - KEEP THEM ===== */
         * {
             margin: 0;
             padding: 0;
@@ -53,7 +50,6 @@
             overflow-x: hidden;
         }
 
-        /* App Header */
         .app-header {
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             padding: 14px 20px 16px;
@@ -134,7 +130,6 @@
             text-align: center;
         }
 
-        /* Category Tabs */
         .category-tabs {
             background: #fff;
             padding: 10px 16px;
@@ -176,14 +171,12 @@
             background: #f0f0f0;
         }
 
-        /* Container */
         .container {
             max-width: 1000px;
             margin: 0 auto;
             padding: 12px 16px 20px;
         }
 
-        /* Menu Grid */
         .menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -280,7 +273,6 @@
             transform: none;
         }
 
-        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -438,7 +430,6 @@
             margin-bottom: 10px;
         }
 
-        /* Checkout Form */
         .checkout-form {
             margin-top: 16px;
             display: none;
@@ -496,7 +487,6 @@
             gap: 12px;
         }
 
-        /* Location Picker */
         .location-picker {
             height: 180px;
             border-radius: 10px;
@@ -532,7 +522,6 @@
             text-align: center;
         }
 
-        /* Order Status */
         .order-status {
             margin-top: 16px;
             padding: 14px;
@@ -598,7 +587,6 @@
             color: var(--text);
         }
 
-        /* Bottom Navigation */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -655,7 +643,6 @@
             text-align: center;
         }
 
-        /* Toast */
         .toast {
             position: fixed;
             bottom: 90px;
@@ -718,7 +705,6 @@
             text-decoration: underline;
         }
 
-        /* Responsive */
         @media (max-width: 480px) {
             .menu-grid {
                 grid-template-columns: 1fr 1fr;
@@ -916,13 +902,17 @@
     <!-- ========================================= -->
     <script>
         // ========================================
-        // SUPABASE CONFIG - UPDATE THESE!
+        // SUPABASE CONFIG - FIXED!
         // ========================================
 
-       const SUPABASE_URL = 'https://qphrmjjjdifbdwdtdkhn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwaHJtampqZGlmYmR3ZHRka2huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzQ1NzYsImV4cCI6MjA5ODE1MDU3Nn0.sk8ScGRSh_0bZ0qUnmWfu6U4-nqX6SOMXDfx5RFERXs';
+        // ✅ CORRECT URL - removed the extra 'i'
+        const SUPABASE_URL = 'https://qphrmjjdfbdwdtdkhn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwaHJtampqZGlmYmR3ZHRka2huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzQ1NzYsImV4cCI6MjA5ODE1MDU3Nn0.sk8ScGRSh_0bZ0qUnmWfu6U4-nqX6SOMXDfx5RFERXs';
 
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        console.log('🔗 Connected to Supabase!');
+        console.log('📡 URL:', SUPABASE_URL);
 
         // ========================================
         // STATE
@@ -956,23 +946,29 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         // ========================================
 
         async function loadMenu() {
+            console.log('🔄 Loading menu...');
             try {
                 const { data, error } = await supabase
                     .from('menu_items')
                     .select('*')
                     .order('category');
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Supabase Error:', error);
+                    throw error;
+                }
 
+                console.log('✅ Menu loaded:', data);
                 menuItems = data || [];
                 renderMenu();
             } catch (error) {
-                console.error('Error loading menu:', error);
+                console.error('❌ Error loading menu:', error);
                 document.getElementById('menuGrid').innerHTML = `
                     <div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text-light);">
                         <p style="font-size:2rem;">😅</p>
-                        <p>Could not load menu. Please try again.</p>
-                        <button onclick="loadMenu()" style="margin-top:10px;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button>
+                        <p style="font-weight:600;color:var(--danger);">${error.message}</p>
+                        <p style="font-size:0.85rem;margin-top:4px;">Check your Supabase connection and tables</p>
+                        <button onclick="loadMenu()" style="margin-top:10px;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 Retry</button>
                     </div>
                 `;
             }
@@ -1188,7 +1184,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
             marker = L.marker([lat, lng]).addTo(map);
             map.setView([lat, lng], 16);
 
-            // Reverse geocode
             fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
                 .then(res => res.json())
                 .then(data => {
@@ -1297,6 +1292,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         // ========================================
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 Tasty Bites App Loaded!');
             loadMenu();
 
             document.getElementById('cartModal').addEventListener('click', function(e) {

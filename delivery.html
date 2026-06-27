@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>🚴 Delivery - Tasty Bites</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f6fa;
+            padding: 16px;
+            padding-bottom: 80px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #e60000, #cc0000);
+            color: #fff;
+            padding: 16px 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+        .header h1 {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header p {
+            opacity: 0.8;
+            font-size: 0.85rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 12px;
+            color: #e60000;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid #e60000;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .order-id {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .status-badge {
+            padding: 4px 14px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-pending {
+            background: #fdcb6e;
+            color: #6c5200;
+        }
+        .status-accepted {
+            background: #74b9ff;
+            color: #003b6c;
+        }
+        .status-preparing {
+            background: #a29bfe;
+            color: #3d0070;
+        }
+        .status-ready {
+            background: #55efc4;
+            color: #007050;
+        }
+        .status-delivering {
+            background: #fd79a8;
+            color: #700030;
+        }
+        .status-delivered {
+            background: #00b894;
+            color: #fff;
+        }
+        .status-cancelled {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .order-details {
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #636e72;
+            line-height: 1.6;
+        }
+        .order-details strong {
+            color: #2d3436;
+        }
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .order-actions button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-accept {
+            background: #00b894;
+            color: #fff;
+        }
+        .btn-accept:hover {
+            background: #00a381;
+        }
+        .btn-pickup {
+            background: #fdcb6e;
+            color: #6c5200;
+        }
+        .btn-pickup:hover {
+            background: #fdcb6e;
+        }
+        .btn-deliver {
+            background: #fd79a8;
+            color: #700030;
+        }
+        .btn-deliver:hover {
+            background: #fd79a8;
+        }
+        .btn-complete {
+            background: #00b894;
+            color: #fff;
+        }
+        .btn-complete:hover {
+            background: #00a381;
+        }
+        .btn-cancel {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .btn-cancel:hover {
+            background: #c0392b;
+        }
+        .btn-location {
+            background: #74b9ff;
+            color: #003b6c;
+        }
+        .btn-location:hover {
+            background: #74b9ff;
+        }
+        .map-container {
+            height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 8px 0;
+            border: 2px solid #e0e0e0;
+        }
+        .no-orders {
+            text-align: center;
+            padding: 40px 0;
+            color: #636e72;
+        }
+        .no-orders .icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2d3436;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 999;
+            opacity: 0;
+            transition: all 0.4s;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        .toast.success {
+            background: #00b894;
+        }
+        .toast.error {
+            background: #e74c3c;
+        }
+        @media (max-width: 480px) {
+            .order-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            .order-actions button {
+                flex: 1;
+                min-width: 80px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to App</a>
+
+        <div class="header">
+            <h1>🚴 Delivery Dashboard</h1>
+            <p>View and manage deliveries</p>
+        </div>
+
+        <div id="ordersContainer">
+            <div class="no-orders">
+                <div class="icon">🚴</div>
+                <p>Loading orders...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- TOAST -->
+    <!-- ========================================= -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ========================================
+        // SUPABASE CONFIG
+        // ========================================
+
+        const SUPABASE_URL = 'https://vsxsmosfcfgziubqulkg.supabase.co';
+        const SUPABASE_ANON_KEY =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzeHNtb3NmY2Zneml1YnF1bGtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDk3OTUsImV4cCI6MjA5Nzk4NTc5NX0.eTEaOE2HYzyMSYX2rQ8aQ-S1F6PNZgwLdJVBSTEbC8w';
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ========================================
+        // TOAST
+        // ========================================
+
+        function showToast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast ' + type + ' show';
+            clearTimeout(t._timeout);
+            t._timeout = setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // ========================================
+        // MAPS
+        // ========================================
+
+        let map = null;
+        let marker = null;
+
+        function showMap(lat, lng, address) {
+            const container = document.getElementById('map-' + lat + '-' + lng);
+            if (!container) return;
+
+            if (map) {
+                map.remove();
+                map = null;
+            }
+
+            map = L.map(container).setView([lat, lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(address || '📍 Delivery Location').openPopup();
+            setTimeout(() => map.invalidateSize(), 300);
+        }
+
+        // ========================================
+        // LOAD ORDERS
+        // ========================================
+
+        async function loadOrders() {
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .in('status', ['ready', 'delivering', 'accepted', 'preparing'])
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                const container = document.getElementById('ordersContainer');
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-orders">
+                            <div class="icon">🚴</div>
+                            <p>No deliveries available</p>
+                            <p style="font-size:0.85rem;color:#bdc3c7;">Check back later for new orders</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = data.map(order => {
+                    const statusClass = 'status-' + order.status;
+                    const itemsText = order.items.map(i => `${i.name} ×${i.qty}`).join(', ');
+                    const date = new Date(order.created_at).toLocaleString();
+
+                    // Map for this order
+                    const mapId = `map-${order.latitude || '0'}-${order.longitude || '0'}`;
+                    const hasLocation = order.latitude && order.longitude;
+
+                    return `
+                        <div class="card">
+                            <div class="order-header">
+                                <span class="order-id">#${String(order.id).slice(-6)}</span>
+                                <span class="status-badge ${statusClass}">${order.status.toUpperCase()}</span>
+                                <span style="font-size:0.75rem;color:#636e72;">${date}</span>
+                            </div>
+
+                            <div class="order-details">
+                                <strong>${order.customer_name}</strong> · 📱 ${order.phone}<br>
+                                📦 ${itemsText}<br>
+                                💰 <strong>K${order.total.toFixed(2)}</strong> · 💳 ${order.payment_method}<br>
+                                📍 ${order.address || 'Location provided'}
+                                ${order.delivery_notes ? `<br>📝 ${order.delivery_notes}` : ''}
+                            </div>
+
+                            ${hasLocation ? `
+                                <div class="map-container" id="${mapId}"></div>
+                                <button class="btn-location" onclick="showMap(${order.latitude}, ${order.longitude}, '${order.address || 'Delivery Location'}')" 
+                                        style="width:100%;padding:8px;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-top:4px;">
+                                    📍 Show on Map
+                                </button>
+                            ` : '<p style="color:#bdc3c7;font-size:0.8rem;">📍 No location provided</p>'}
+
+                            <div class="order-actions">
+                                ${getDeliveryButtons(order)}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Render maps for orders with locations
+                data.forEach(order => {
+                    if (order.latitude && order.longitude) {
+                        setTimeout(() => {
+                            showMap(order.latitude, order.longitude, order.address || '📍 Delivery Location');
+                        }, 500);
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('ordersContainer').innerHTML = `
+                    <div class="no-orders">
+                        <div class="icon">😅</div>
+                        <p>Error loading orders</p>
+                        <button onclick="loadOrders()" style="margin-top:10px;padding:8px 20px;background:#e60000;color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // ========================================
+        // DELIVERY ACTIONS
+        // ========================================
+
+        function getDeliveryButtons(order) {
+            const status = order.status;
+
+            if (status === 'delivered') {
+                return `<button style="background:#bdc3c7;color:#636e72;cursor:default;">✅ Delivered</button>`;
+            }
+
+            if (status === 'cancelled') {
+                return `<button style="background:#bdc3c7;color:#636e72;cursor:default;">❌ Cancelled</button>`;
+            }
+
+            let buttons = '';
+
+            if (status === 'ready') {
+                buttons += `<button class="btn-deliver" onclick="updateOrder('${order.id}', 'delivering')">🚴 Start Delivery</button>`;
+            }
+
+            if (status === 'delivering') {
+                buttons += `<button class="btn-complete" onclick="updateOrder('${order.id}', 'delivered')">✅ Mark Delivered</button>`;
+            }
+
+            if (status === 'accepted' || status === 'preparing') {
+                buttons += `<span style="color:#636e72;font-size:0.85rem;">⏳ Order being prepared...</span>`;
+            }
+
+            // Always show cancel option
+            if (status !== 'cancelled' && status !== 'delivered') {
+                buttons += `<button class="btn-cancel" onclick="updateOrder('${order.id}', 'cancelled')">❌ Cancel</button>`;
+            }
+
+            return buttons || `<span style="color:#636e72;">No actions available</span>`;
+        }
+
+        async function updateOrder(id, status) {
+            try {
+                const { error } = await supabase
+                    .from('orders')
+                    .update({ status })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                const messages = {
+                    'delivering': '🚴 Started delivery!',
+                    'delivered': '🎉 Order delivered!',
+                    'cancelled': '❌ Order cancelled'
+                };
+
+                showToast(messages[status] || '✅ Order updated');
+                loadOrders();
+
+            } catch (error) {
+                console.error('Error updating order:', error);
+                showToast('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        // ========================================
+        // REAL-TIME UPDATES
+        // ========================================
+
+        supabase
+            .channel('delivery-orders')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'orders'
+            }, () => {
+                loadOrders();
+            })
+            .subscribe();
+
+        // ========================================
+        // INIT
+        // ========================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOrders();
+            // Refresh every 30 seconds
+            setInterval(loadOrders, 30000);
+        });
+
+        // Make functions globally accessible
+        window.updateOrder = updateOrder;
+        window.loadOrders = loadOrders;
+        window.showMap = showMap;
+    </script>
+
+</body>
+</html>

@@ -393,12 +393,17 @@
         // ========================================
         // SUPABASE CONFIG
         // ========================================
+// ========================================
+// SUPABASE CONFIG - FIXED!
+// ========================================
 
-     const SUPABASE_URL = 'https://qphrmjjjdifbdwdtdkhn.supabase.co';
+// ✅ CORRECT URL
+const SUPABASE_URL = 'https://qphrmjjdfbdwdtdkhn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwaHJtampqZGlmYmR3ZHRka2huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzQ1NzYsImV4cCI6MjA5ODE1MDU3Nn0.sk8ScGRSh_0bZ0qUnmWfu6U4-nqX6SOMXDfx5RFERXs';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ========================================
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+console.log('🔗 Admin connected to Supabase!');
         // TOAST
         // ========================================
 

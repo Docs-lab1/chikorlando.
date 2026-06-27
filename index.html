@@ -182,6 +182,15 @@
         .toast.error {
             background: #e74c3c;
         }
+        .error-box {
+            background: #fdedec;
+            border: 1px solid #e74c3c;
+            border-radius: 10px;
+            padding: 16px;
+            margin: 10px 0;
+            color: #e74c3c;
+            font-size: 0.9rem;
+        }
         @media (max-width: 480px) {
             .order-header {
                 flex-direction: column;
@@ -214,13 +223,18 @@
 
     <script>
         // ========================================
-        // SUPABASE CONFIG
+        // SUPABASE CONFIGURATION - UPDATE THIS!
         // ========================================
 
-       const SUPABASE_URL = 'https://qphrmjjdfbdwdtdkhn.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_pub1ishable_XcU7Na-qhQgsVRtoFCM2ag_IF2d6_';
+        const SUPABASE_URL = 'https://qphrmjjjdifbdwdtdkhn.supabase.co';
+        // ⚠️ REPLACE WITH YOUR ACTUAL ANON KEY FROM SUPABASE API SETTINGS
+        const SUPABASE_ANON_KEY = 'YeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwaHJtampqZGlmYmR3ZHRka2huIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzQ1NzYsImV4cCI6MjA5ODE1MDU3Nn0.sk8ScGRSh_0bZ0qUnmWfu6U4-nqX6SOMXDfx5RFERXs';
 
+        // Initialize Supabase
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        console.log('🚀 Supabase URL:', SUPABASE_URL);
+        console.log('🔑 Supabase Key:', SUPABASE_ANON_KEY.substring(0, 20) + '...');
 
         // ========================================
         // TOAST
@@ -265,6 +279,9 @@ const SUPABASE_ANON_KEY = 'sb_pub1ishable_XcU7Na-qhQgsVRtoFCM2ag_IF2d6_';
         // ========================================
 
         async function loadOrders() {
+            console.log('🔄 Loading orders...');
+            const container = document.getElementById('ordersContainer');
+
             try {
                 const { data, error } = await supabase
                     .from('orders')
@@ -272,57 +289,75 @@ const SUPABASE_ANON_KEY = 'sb_pub1ishable_XcU7Na-qhQgsVRtoFCM2ag_IF2d6_';
                     .in('status', ['ready', 'delivering', 'accepted', 'preparing'])
                     .order('created_at', { ascending: true });
 
-                if (error) throw error;
-
-                const container = document.getElementById('ordersContainer');
-
-                if (!data || data.length === 0) {
+                // Check for errors first
+                if (error) {
+                    console.error('❌ Supabase Error:', error);
                     container.innerHTML = `
-                            <div class="no-orders">
-                                <div class="icon">🚴</div>
-                                <p>No deliveries available</p>
-                                <p style="font-size:0.85rem;color:#bdc3c7;">Check back later</p>
-                            </div>
-                        `;
+                        <div class="error-box">
+                            <strong>❌ Database Error:</strong><br>
+                            ${error.message}<br><br>
+                            <strong>Possible causes:</strong>
+                            <ul style="margin-left:20px;margin-top:8px;">
+                                <li>Tables not created in Supabase</li>
+                                <li>Wrong API key</li>
+                                <li>Row Level Security blocking access</li>
+                            </ul>
+                            <button onclick="loadOrders()" style="margin-top:10px;padding:8px 20px;background:#e60000;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 Retry</button>
+                        </div>
+                    `;
                     return;
                 }
 
+                console.log('✅ Orders loaded:', data);
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-orders">
+                            <div class="icon">📦</div>
+                            <p>No deliveries available</p>
+                            <p style="font-size:0.85rem;color:#bdc3c7;">Orders will appear here when they are ready for delivery</p>
+                            <button onclick="loadOrders()" style="margin-top:10px;padding:8px 20px;background:#e60000;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 Refresh</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Render orders
                 container.innerHTML = data.map(order => {
                     const statusClass = 'status-' + order.status;
-                    const itemsText = order.items.map(i => `${i.name} ×${i.qty}`).join(', ');
+                    const itemsText = order.items ? order.items.map(i => `${i.name} ×${i.qty}`).join(', ') : 'No items';
                     const date = new Date(order.created_at).toLocaleString();
-
                     const hasLocation = order.latitude && order.longitude;
 
                     return `
-                            <div class="card">
-                                <div class="order-header">
-                                    <span class="order-id">#${String(order.id).slice(-6)}</span>
-                                    <span class="status-badge ${statusClass}">${order.status.toUpperCase()}</span>
-                                    <span style="font-size:0.75rem;color:#636e72;">${date}</span>
-                                </div>
-
-                                <div class="order-details">
-                                    📱 ${order.phone}<br>
-                                    📦 ${itemsText}<br>
-                                    💰 <strong>K${order.total.toFixed(2)}</strong> · 💳 ${order.payment_method}<br>
-                                    📍 ${order.address || 'Location provided'}
-                                    ${order.delivery_notes ? `<br>📝 ${order.delivery_notes}` : ''}
-                                </div>
-
-                                ${hasLocation ? `
-                                    <div class="map-container" id="map-${order.latitude}-${order.longitude}"></div>
-                                    <button class="btn-location" onclick="showMap(${order.latitude}, ${order.longitude}, '${order.address || 'Delivery Location'}')" 
-                                            style="width:100%;padding:8px;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-top:4px;">
-                                        📍 Show on Map
-                                    </button>
-                                ` : '<p style="color:#bdc3c7;font-size:0.8rem;">📍 No location provided</p>'}
-
-                                <div class="order-actions">
-                                    ${getDeliveryButtons(order)}
-                                </div>
+                        <div class="card">
+                            <div class="order-header">
+                                <span class="order-id">#${String(order.id).slice(-6)}</span>
+                                <span class="status-badge ${statusClass}">${order.status.toUpperCase()}</span>
+                                <span style="font-size:0.75rem;color:#636e72;">${date}</span>
                             </div>
-                        `;
+
+                            <div class="order-details">
+                                📱 ${order.phone}<br>
+                                📦 ${itemsText}<br>
+                                💰 <strong>K${order.total.toFixed(2)}</strong> · 💳 ${order.payment_method || 'Cash'}<br>
+                                📍 ${order.address || 'Location provided'}
+                                ${order.delivery_notes ? `<br>📝 ${order.delivery_notes}` : ''}
+                            </div>
+
+                            ${hasLocation ? `
+                                <div class="map-container" id="map-${order.latitude}-${order.longitude}"></div>
+                                <button class="btn-location" onclick="showMap(${order.latitude}, ${order.longitude}, '${order.address || 'Delivery Location'}')" 
+                                        style="width:100%;padding:8px;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-top:4px;">
+                                    📍 Show on Map
+                                </button>
+                            ` : '<p style="color:#bdc3c7;font-size:0.8rem;">📍 No location provided</p>'}
+
+                            <div class="order-actions">
+                                ${getDeliveryButtons(order)}
+                            </div>
+                        </div>
+                    `;
                 }).join('');
 
                 // Render maps
@@ -335,14 +370,15 @@ const SUPABASE_ANON_KEY = 'sb_pub1ishable_XcU7Na-qhQgsVRtoFCM2ag_IF2d6_';
                 });
 
             } catch (error) {
-                console.error('Error loading orders:', error);
-                document.getElementById('ordersContainer').innerHTML = `
-                        <div class="no-orders">
-                            <div class="icon">😅</div>
-                            <p>Error loading orders</p>
-                            <button onclick="loadOrders()" style="margin-top:10px;padding:8px 20px;background:#e60000;color:#fff;border:none;border-radius:8px;cursor:pointer;">Retry</button>
-                        </div>
-                    `;
+                console.error('❌ Unexpected error:', error);
+                container.innerHTML = `
+                    <div class="error-box">
+                        <strong>❌ Unexpected Error:</strong><br>
+                        ${error.message || 'Unknown error occurred'}
+                        <br><br>
+                        <button onclick="loadOrders()" style="margin-top:10px;padding:8px 20px;background:#e60000;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 Retry</button>
+                    </div>
+                `;
             }
         }
 
@@ -417,6 +453,7 @@ const SUPABASE_ANON_KEY = 'sb_pub1ishable_XcU7Na-qhQgsVRtoFCM2ag_IF2d6_';
                 schema: 'public',
                 table: 'orders'
             }, () => {
+                console.log('🔄 Real-time update received');
                 loadOrders();
             })
             .subscribe();
@@ -426,7 +463,9 @@ const SUPABASE_ANON_KEY = 'sb_pub1ishable_XcU7Na-qhQgsVRtoFCM2ag_IF2d6_';
         // ========================================
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 Delivery page loaded');
             loadOrders();
+            // Refresh every 30 seconds
             setInterval(loadOrders, 30000);
         });
 
